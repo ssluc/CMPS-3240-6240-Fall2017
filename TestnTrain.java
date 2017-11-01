@@ -7,20 +7,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+// ML library in JAVA
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.evaluation.NominalPrediction;
-import weka.classifiers.rules.DecisionTable;
-import weka.classifiers.rules.PART;
-import weka.classifiers.trees.DecisionStump;
-import weka.classifiers.trees.J48;
 import weka.core.FastVector;
 import weka.core.Instances;
+import weka.core.Instance;
+import weka.classifiers.lazy.IBk;
  
 public class TestnTrain {
-	public static void readDataFile() {
+	// reads data
+	public static BufferedReader dataReader(String nameOfFile) {
 		// locate file
-    	File file = new File("data.csv");
+    	File file = new File("nameOfFile");
         
         // set up buffered reader to read file
         BufferedReader br = null;
@@ -54,11 +54,12 @@ public class TestnTrain {
         catch (IOException e) {
 			e.printStackTrace();
 		}
+		return br;
 	}
  
 	// evaluate model
-	public static evaluateModel(Classifier model, Instances trainData, Instances testData) throws Exception {
-		evaluateModel eval = new evaluateModel(trainData);
+	public static Evaluation evaluateModel(Classifier model, Instances trainData, Instances testData) throws Exception {
+		Evaluation eval = new Evaluation(trainData);
  
 		model.buildClassifier(trainData);
 		eval.evaluateModel(model, testData);
@@ -66,76 +67,43 @@ public class TestnTrain {
 		return eval;
 	}
  
-	// determines accuracy
+	// determine accuracy
 	public static double Accuracy(FastVector predict) {
-		double correct = 0;
+		double accuracy = 0;
  
 		for (int i = 0; i < predict.size(); i++) {
 			NominalPrediction np = (NominalPrediction) predict.elementAt(i);
 			if (np.predicted() == np.actual()) {
-				correct++;
+				accuracy++;
 			}
 		}
  
-		return 100 * correct / predict.size();
-	}
- 
-	public static Instances[][] crossValidationSplit(Instances data, int numberOfFolds) {
-		Instances[][] split = new Instances[2][numberOfFolds];
- 
-		for (int i = 0; i < numberOfFolds; i++) {
-			split[0][i] = data.trainCV(numberOfFolds, i);
-			split[1][i] = data.testCV(numberOfFolds, i);
-		}
- 
-		return split;
+		return 100 * accuracy / predict.size();
 	}
  
 	public static void main(String[] args) throws Exception {
-		BufferedReader datafile = readDataFile("weather.txt");
- 
-		Instances data = new Instances(datafile);
+		
+		// read file
+		BufferedReader leFile = dataReader("data.csv");
+		Instances data = new Instances(leFile);
 		data.setClassIndex(data.numAttributes() - 1);
  
-		// Do 10-split cross validation
-		Instances[][] split = crossValidationSplit(data, 10);
+		// separate data into test and train data
+		Instances[] train = split[0];
+		Instances[] test = split[1];
  
-		// Separate split into training and testing arrays
-		Instances[] trainingSplits = split[0];
-		Instances[] testingSplits = split[1];
+		// linear regression classifier
+		Classifier linear = new weka.classifiers.functions.LinearRegression();
+		linear.buildClassifier(train);
+		linear.buildClassifier(test);
  
-		// Use a set of classifiers
-		Classifier[] models = { 
-				new J48(), // a decision tree
-				new PART(), 
-				new DecisionTable(),//decision table majority classifier
-				new DecisionStump() //one-level decision tree
-		};
+		// evaluate model
+		Evaluation eval = new Evaluation(data);
+		System.out.println("The evluation is" + eval);
  
-		// Run for each model
-		for (int j = 0; j < models.length; j++) {
- 
-			// Collect every group of predictions for current model in a FastVector
-			FastVector predictions = new FastVector();
- 
-			// For each training-testing split pair, train and test the classifier
-			for (int i = 0; i < trainingSplits.length; i++) {
-				Evaluation validation = classify(models[j], trainingSplits[i], testingSplits[i]);
- 
-				predictions.appendElements(validation.predictions());
- 
-				// Uncomment to see the summary for each training-testing pair.
-				//System.out.println(models[j].toString());
-			}
- 
-			// Calculate overall accuracy of current classifier on all splits
-			double accuracy = calculateAccuracy(predictions);
- 
-			// Print current classifier's name and accuracy in a complicated,
-			// but nice-looking way.
-			System.out.println("Accuracy of " + models[j].getClass().getSimpleName() + ": "
-					+ String.format("%.2f%%", accuracy)
-					+ "\n---------------------------------");
+		// accuracy
+		double accu = Accuracy(eval);
+		System.out.println("The accuracy is" + accuracy);
 		}
  
 	}
